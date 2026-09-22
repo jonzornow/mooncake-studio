@@ -18,7 +18,9 @@ try {
     viewport: { width: 1024, height: 1024 },
     deviceScaleFactor: 1,
   });
-  await page.goto(pathToFileURL(resolve("Mooncake-Studio.html")).href);
+  await page.goto(
+    pathToFileURL(resolve("../release/Mooncake-Studio.html")).href,
+  );
   await page.waitForFunction(() => window.__studioResult, null, {
     timeout: 120000,
   });
@@ -41,10 +43,10 @@ try {
     }),
   );
   await page.waitForTimeout(1500);
-  mkdirSync("docs/images", { recursive: true });
+  mkdirSync("../docs/images", { recursive: true });
   await page
     .locator("#hero")
-    .screenshot({ path: "docs/images/mooncake-render.png" });
+    .screenshot({ path: "../docs/images/mooncake-render.png" });
 } finally {
   await browser.close();
 }
