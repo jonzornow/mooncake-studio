@@ -1676,6 +1676,61 @@ dialog::backdrop {
 .guide-safety p {
   margin-top: 0;
 }
+#guide {
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+}
+.guide-recipe {
+  margin-top: 22px;
+  border: 1px solid var(--line);
+  background: var(--wash);
+}
+.guide-recipe > summary {
+  padding: 15px 17px;
+  cursor: pointer;
+  list-style-position: outside;
+}
+.guide-recipe > summary span {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-left: 4px;
+}
+.guide-recipe > summary b {
+  font:
+    normal 21px Georgia,
+    serif;
+}
+.guide-recipe > summary small {
+  color: var(--muted);
+}
+.recipe-body {
+  padding: 0 17px 18px;
+}
+.recipe-body > details {
+  margin-top: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+.recipe-body > details > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.recipe-body h4 {
+  margin: 16px 0 4px;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.recipe-body ul,
+.recipe-body ol {
+  padding-left: 21px;
+}
+.recipe-caution {
+  padding: 9px 11px;
+  border-left: 3px solid var(--accent);
+  background: var(--paper);
+}
 .tradition-library {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
