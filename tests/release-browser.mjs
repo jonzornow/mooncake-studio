@@ -40,7 +40,9 @@ try {
   page.on("request", (r) => {
     if (/^https?:/.test(r.url())) requests.push(r.url());
   });
-  await page.goto(pathToFileURL(resolve("Mooncake-Studio.html")).href);
+  await page.goto(
+    pathToFileURL(resolve("../release/Mooncake-Studio.html")).href,
+  );
   const ready = () =>
     page.waitForFunction(
       () => !document.querySelector("#all-stl").disabled,
@@ -84,6 +86,22 @@ try {
   assert.equal(
     await page.locator(".view-buttons > .edit-cluster > #edit-design").count(),
     1,
+  );
+  assert.equal(
+    await page.locator(".viewport-tools > .camera-buttons > #orbit").count(),
+    1,
+  );
+  assert.equal(
+    await page.locator(".viewport-tools > .camera-buttons > #top").count(),
+    1,
+  );
+  assert.equal(
+    await page.locator(".viewport-tools > .camera-buttons > #realism").count(),
+    1,
+  );
+  assert.equal(
+    await page.locator(".viewport-tools > .hint").textContent(),
+    "Drag to orbit · scroll to zoom",
   );
   assert(await page.locator("#edit-design img").isVisible());
   assert.equal(await page.locator("#edit-design").textContent(), "Edit Cake");
@@ -348,7 +366,7 @@ try {
     offline: true,
   });
   await blockedPreview.goto(
-    pathToFileURL(resolve("Mooncake-Studio.html")).href,
+    pathToFileURL(resolve("../release/Mooncake-Studio.html")).href,
   );
   assert.match(
     await blockedPreview.locator("#startup-fallback").first().textContent(),
