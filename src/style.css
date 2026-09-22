@@ -1854,3 +1854,60 @@ dialog::backdrop {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* View controls belong with the viewport, not the page-level edit action. */
+.pastry-stage {
+  position: relative;
+}
+.viewport-tools {
+  position: absolute;
+  z-index: 5;
+  left: 24px;
+  bottom: 20px;
+  display: grid;
+  gap: 5px;
+  justify-items: start;
+  max-width: calc(100% - 48px);
+  pointer-events: none;
+}
+.viewport-tools .hint {
+  position: static;
+  margin: 0;
+  color: #666c70;
+  font-size: 11px;
+  font-style: normal;
+  letter-spacing: 0.01em;
+}
+.camera-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  pointer-events: auto;
+}
+.camera-buttons button {
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 1px solid #a7acae;
+  border-radius: 4px;
+  background: #f7f7f5e8;
+  color: #34393c;
+  font-size: 11px;
+  backdrop-filter: blur(8px);
+}
+.camera-buttons button:hover,
+.camera-buttons button:focus-visible {
+  border-color: #5e6569;
+  background: #fff;
+}
+
+@media (max-width: 720px) {
+  .viewport-tools {
+    left: 14px;
+    bottom: 14px;
+    max-width: calc(100% - 28px);
+  }
+  .camera-buttons button {
+    min-height: 34px;
+    padding-inline: 9px;
+  }
+}
