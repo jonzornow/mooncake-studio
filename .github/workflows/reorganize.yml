@@ -1,0 +1,29 @@
+name: Apply repository cleanup
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  reorganize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Move development files out of the landing page
+        run: |
+          set -euo pipefail
+          mkdir -p app release
+          git mv index.html package.json package-lock.json vite.config.js build_standalone.py app/
+          git mv src public scripts tests licenses app/
+          git mv Mooncake-Studio.html release/Mooncake-Studio.html
+          git rm BROWSER-COMPATIBILITY.md RELEASE-REVIEW.md SHA256SUMS THIRD_PARTY_NOTICES.md
+          git rm .github/workflows/reorganize.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Simplify repository layout"
+          git push
