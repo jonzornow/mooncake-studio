@@ -1,15 +1,30 @@
 name: Release checks
-on: [push, pull_request, workflow_dispatch]
+
+on:
+  push:
+    paths:
+      - ".github/workflows/ci.yml"
+      - "app/**"
+      - "release/**"
+  pull_request:
+    paths:
+      - ".github/workflows/ci.yml"
+      - "app/**"
+      - "release/**"
+  workflow_dispatch:
+
+concurrency:
+  group: release-checks-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
+
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    name: Chromium release gate
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        browser: [chromium, firefox, webkit]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,27 +34,68 @@ jobs:
           cache-dependency-path: app/package-lock.json
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: "3.x"
       - run: npm ci
         working-directory: app
       - run: npm run build:standalone
         working-directory: app
       - run: npm test
         working-directory: app
-      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npx playwright install --with-deps chromium
+        working-directory: app
+      - run: npm run test:browser
+        working-directory: app
+        env:
+          BROWSER: chromium
+      - run: node tests/hosted-browser.mjs
+        working-directory: app
+      - run: npm run test:mobile
+        working-directory: app
+        env:
+          BROWSER: chromium
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: review-chromium
+          path: |
+            app/test-results/
+            app/tests/*-validation.json
+            release/Mooncake-Studio.html
+
+  cross-browser:
+    name: Manual ${{ matrix.browser }} check
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-15
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - run: npm ci
+        working-directory: app
+      - run: npm run build:standalone
+        working-directory: app
+      - run: npx playwright install ${{ matrix.browser }}
         working-directory: app
       - run: npm run test:browser
         working-directory: app
         env:
           BROWSER: ${{ matrix.browser }}
-      - if: matrix.browser == 'chromium'
-        run: node tests/hosted-browser.mjs
-        working-directory: app
-      - if: matrix.browser != 'firefox'
+      - if: matrix.browser == 'webkit'
         run: npm run test:mobile
         working-directory: app
         env:
-          BROWSER: ${{ matrix.browser }}
+          BROWSER: webkit
       - uses: actions/upload-artifact@v4
         if: always()
         with:
