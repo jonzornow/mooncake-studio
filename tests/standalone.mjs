@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 const location = "/tmp/mooncake-isolated.html";
-await fs.copyFile("../Mooncake-Studio.html", location);
+await fs.copyFile("../release/Mooncake-Studio.html", location);
 const browser = await chromium.launch({
   headless: true,
   executablePath: process.env.CHROMIUM_EXECUTABLE_PATH || undefined,
