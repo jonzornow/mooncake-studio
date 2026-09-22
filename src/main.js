@@ -298,6 +298,16 @@ $("#save").textContent = "Save";
 projectActions.append($("#save"), $("#open"));
 editCluster.append(editButton, projectActions);
 $(".view-buttons").prepend(editCluster);
+// Keep cake editing near the title, while camera controls sit where they are
+// used: at the lower-left of the viewport, directly below the orbit hint.
+const cameraButtons = document.createElement("div");
+cameraButtons.className = "camera-buttons";
+cameraButtons.setAttribute("aria-label", "Cake view");
+cameraButtons.append($("#orbit"), $("#top"), $("#realism"));
+const viewportTools = document.createElement("div");
+viewportTools.className = "viewport-tools";
+viewportTools.append($(".hint"), cameraButtons);
+$(".pastry-stage").append(viewportTools);
 const editArtThumb = $("#edit-art-thumb");
 const artPreview = $("#art-preview");
 const syncEditThumb = () => (editArtThumb.src = artPreview.src);
