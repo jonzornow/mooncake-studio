@@ -96,6 +96,15 @@ try {
     "Cake width",
   );
   assert.equal(await page.locator("#help").textContent(), "?");
+  assert.equal(await page.locator(".guide-recipe").count(), 1);
+  assert.match(
+    await page.locator(".guide-recipe").textContent(),
+    /22 g pastry \+ 28 g filling/,
+  );
+  assert.match(
+    await page.locator(".guide-recipe").textContent(),
+    /Leanne Mai-ly Hilgart/,
+  );
   assert.equal(await page.locator(".project-actions > #save").count(), 1);
   assert.equal(await page.locator(".project-actions > #open").count(), 1);
   assert((await page.locator(".help-tip").count()) >= 12);
