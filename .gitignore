@@ -1,0 +1,9 @@
+# Installed and generated build output
+node_modules/
+dist/
+test-results/
+public/manifold.wasm
+tests/*-validation.json
+
+# macOS metadata
+.DS_Store

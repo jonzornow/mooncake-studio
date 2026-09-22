@@ -1,0 +1,33 @@
+{
+  "name": "mooncake-studio",
+  "version": "1.0.0",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "node tests/geometry.mjs && node tests/edge-release.mjs",
+    "build:standalone": "npm run build && python3 build_standalone.py",
+    "predev": "node scripts/sync-wasm.mjs",
+    "prebuild": "node scripts/sync-wasm.mjs",
+    "test:browser": "node tests/release-browser.mjs",
+    "test:mobile": "node tests/mobile-browser.mjs",
+    "format:check": "prettier --check src/*.js src/*.css tests/*.mjs scripts/*.mjs"
+  },
+  "dependencies": {
+    "d3-contour": "^4.0.2",
+    "fflate": "^0.8.3",
+    "manifold-3d": "3.5.3",
+    "three": "^0.183.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "prettier": "3.6.2",
+    "vite": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=22.12"
+  }
+}
