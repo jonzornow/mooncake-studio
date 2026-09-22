@@ -375,6 +375,90 @@ traditionLibrary.innerHTML = traditionalStyles
   )
   .join("");
 traditionsHeading.after(traditionLibrary);
+const recipe = document.createElement("details");
+recipe.className = "guide-recipe";
+recipe.innerHTML = `
+  <summary><span><b>Vegan mooncake recipe</b><small>Leanne Mai-ly Hilgart · about 36 small 50 g cakes</small></span></summary>
+  <div class="recipe-body">
+    <p>These are vegan Cantonese-style baked mooncakes made with prepared sweet bean or seed pastes and a homemade alkaline solution instead of commercial kansui. Each cake uses <strong>22 g pastry + 28 g filling</strong>.</p>
+    <p>This is easiest as a two-day project: prepare the alkaline ingredient and fillings on day one, then make the dough, mold and bake on day two. It can be completed in one day, but advance preparation makes a mooncake-making party much more relaxed.</p>
+
+    <details open>
+      <summary>Ingredients & equipment</summary>
+      <h4>Pastry dough</h4>
+      <ul>
+        <li>425 g all-purpose flour</li>
+        <li>255 g Lyle’s Golden Syrup — use golden syrup for the classic flavor, not maple or pancake syrup</li>
+        <li>105 g vegetable oil</li>
+        <li>9 g homemade alkaline solution (below), or commercial kansui/lye water</li>
+      </ul>
+      <h4>Fillings</h4>
+      <p>About 1,000 g prepared sweet bean or seed paste total. Good options include red bean, matcha lotus or bean, lotus seed, white bean, chestnut, chestnut–white-bean and black sesame. Check packaged filling ingredients when baking vegan.</p>
+      <p>Prepared fillings are often sold as dense rectangular tubes or bricks in clear airtight packaging. If they are not with baking ingredients, check the packaged-dessert section of an Asian grocery store.</p>
+      <h4>For molding & baking</h4>
+      <ul>
+        <li>50 g mooncake press and traditional or custom inserts</li>
+        <li>Cornstarch for dusting</li>
+        <li>Parchment paper and baking sheets</li>
+        <li>Digital kitchen scale</li>
+        <li>Small pastry brush for optional vegan egg wash</li>
+      </ul>
+    </details>
+
+    <details>
+      <summary>Optional coffee filling</summary>
+      <p>Mix 350 g prepared chestnut or white bean paste with 5–8 teaspoons instant coffee or espresso powder, to taste. Add the powder directly without water. Start with less, mix thoroughly, taste and increase as desired.</p>
+      <p>The same approach works with dry flavorings such as ground black sesame, matcha, cocoa or spices. Avoid added liquid so the filling remains firm enough to roll.</p>
+    </details>
+
+    <details>
+      <summary>Day 1 · Prepare</summary>
+      <h4>1. Make the alkaline solution</h4>
+      <ul>
+        <li>½ teaspoon ordinary baking soda</li>
+        <li>1⅔ teaspoons water</li>
+      </ul>
+      <ol>
+        <li>Heat the oven to 400°F / 205°C.</li>
+        <li>Spread the baking soda in a small uncovered oven-safe dish and bake for 1 hour. Cool completely.</li>
+        <li>Dissolve ½ teaspoon of the baked baking soda in 1⅔ teaspoons water. Measure 9 g of this solution for the dough.</li>
+      </ol>
+      <p class="recipe-caution"><strong>Handle carefully:</strong> heating converts sodium bicarbonate to the stronger alkali sodium carbonate. Avoid breathing the dust or getting it in your eyes, and clearly label any leftovers.</p>
+      <h4>2. Prepare the fillings</h4>
+      <p>Mix any custom-flavored paste, then portion approximately 36 filling balls at <strong>28 g each</strong>. Cover and refrigerate overnight.</p>
+    </details>
+
+    <details>
+      <summary>Day 2 · Make the mooncakes</summary>
+      <h4>1. Make the dough</h4>
+      <p>Whisk together 255 g golden syrup, 105 g vegetable oil and 9 g alkaline solution. Add 425 g flour and mix just until a soft cohesive dough forms; do not over-knead. Cover tightly and rest at room temperature for 45–60 minutes.</p>
+      <h4>2. Portion</h4>
+      <p>Divide the rested dough into approximately 36 <strong>22 g balls</strong>. Keep them covered. Remove filling balls from the refrigerator shortly before assembly so they remain firm but are not extremely cold.</p>
+      <h4>3. Wrap</h4>
+      <p>Flatten one dough ball into a small disc with a slightly thicker center and thinner edges. Place a 28 g filling ball in the center and gently work the pastry upward while rotating. Enclose the filling, pinch the opening closed and roll gently to smooth.</p>
+      <h4>4. Press</h4>
+      <p>Line baking sheets with parchment. Very lightly dust the filled ball and/or mold with cornstarch and tap away excess. Put the ball in a 50 g press, set it directly on the sheet, press firmly and evenly for a few seconds, release, then lift straight upward. Leave pressed cakes in place.</p>
+      <h4>5. Optional vegan egg wash</h4>
+      <p>A vegan egg alternative can give a more golden, glossy crust. Aquafaba may also work, although that variation was not tested for this recipe. Apply any wash extremely sparingly with a nearly dry pastry brush so it does not pool in the grooves. It is also fine to omit the wash for a matte finish.</p>
+      <h4>6. Bake</h4>
+      <ol>
+        <li>Heat the oven to 350°F / 175°C.</li>
+        <li>Bake one parchment-lined tray (about 12 cakes) for 8 minutes.</li>
+        <li>Remove and rest for 5 minutes. Apply a very thin egg wash now, if using.</li>
+        <li>Return to the oven for another 14 minutes, then cool completely. Repeat with the remaining trays.</li>
+      </ol>
+      <h4>7. Rest & eat</h4>
+      <p>The cakes can be eaten the day they are baked, but Cantonese-style pastry is initially firmer. Once completely cool, store in an airtight container. Over 1–2 days the crust softens and develops a richer, slightly glossy appearance. Serve with hot unsweetened tea for a pleasant bitter–sweet balance.</p>
+    </details>
+
+    <details>
+      <summary>Making mooncakes as a party</summary>
+      <p><strong>The day before:</strong> prepare the alkaline ingredient, flavor any fillings, portion 28 g filling balls and refrigerate.</p>
+      <p><strong>A couple of hours before:</strong> make and rest the dough, then portion 22 g balls.</p>
+      <p><strong>When everyone arrives:</strong> set out the dough, fillings, cornstarch and molds. Then everyone can choose a filling → wrap → choose a mold → press → bake → make tea → eat mooncakes.</p>
+    </details>
+  </div>`;
+$("#guide").append(recipe);
 for (const b of exportMenu.querySelectorAll("button"))
   b.addEventListener("click", () => (exportMenu.open = false));
 document.addEventListener("click", (e) => {
