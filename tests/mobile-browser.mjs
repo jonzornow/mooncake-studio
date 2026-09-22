@@ -37,7 +37,9 @@ try {
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
-    await page.goto(pathToFileURL(resolve("Mooncake-Studio.html")).href);
+    await page.goto(
+      pathToFileURL(resolve("../release/Mooncake-Studio.html")).href,
+    );
     await page.waitForFunction(
       () => !document.querySelector("#all-stl").disabled,
       null,
