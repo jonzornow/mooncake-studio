@@ -241,8 +241,15 @@ export function makeBuilder(Module) {
     // relief. Its draft and edge radius grow into the base, away from that
     // outline. Legacy mode treats it as the base and tapers inward.
     const startOffset = preserveArtwork ? draftInset + r : 0;
-    const startSection =
-      startOffset > 0.001 ? own(cs.offset(startOffset, "Round", 2, 32)) : cs;
+    // Always offset the original artwork. Expanding then shrinking an offset
+    // section is a morphological closing: lost gaps and holes never return.
+    const sectionAt = (inset) => {
+      const offset = startOffset - inset;
+      return Math.abs(offset) < 1e-8
+        ? cs
+        : own(cs.offset(offset, "Round", 2, 32));
+    };
+    const startSection = sectionAt(0);
     const rings = startSection.toPolygons();
     face(rings, () => 0, true);
     function bridge(previous, previousZ, next, nextZ) {
@@ -274,11 +281,16 @@ export function makeBuilder(Module) {
             triangles.push(A, B, C, A, C, D);
           }
       } else {
-        const draftedBase = own(
-          startSection.offset(-slope * base, "Round", 2, 32),
-        );
-        bridge(previous, 0, draftedBase, base);
-        previous = draftedBase;
+        // Offset contours can split apart or gain holes. A single bridge over
+        // the full depth caps those transitions at the face and loses detail.
+        // Resolve the changes along the wall, within 0.1 mm in height.
+        const steps = Math.max(1, Math.ceil(base / 0.1));
+        for (let i = 1; i <= steps; i++) {
+          const z = (base * i) / steps;
+          const next = sectionAt(slope * z);
+          bridge(previous, (base * (i - 1)) / steps, next, z);
+          previous = next;
+        }
       }
     }
     let previousZ = base,
@@ -289,9 +301,9 @@ export function makeBuilder(Module) {
       for (let i = 1; i <= n; i++) {
         const theta = ((i / n) * Math.PI) / 2,
           edgeInset = type === "round" ? r * (1 - Math.cos(theta)) : r,
-          delta = slope * (base + (i / n) * r) + edgeInset;
+          delta = slope * (base + r * Math.sin(theta)) + edgeInset;
         const z = type === "round" ? base + r * Math.sin(theta) : h;
-        const next = own(startSection.offset(-delta, "Round", 2, 32));
+        const next = sectionAt(delta);
         if (next.isEmpty()) throw Error("Round offset removed all artwork.");
         bridge(previous, previousZ, next, z);
         previous = next;
@@ -401,63 +413,75 @@ export function makeBuilder(Module) {
       let plate = blank;
       let cake = extrude(bore, p.cakeHeight);
       const limit = own(plateSection.offset(-2.5));
-      let art = own(
-        new C(
-          paths.map((poly) =>
-            poly.map(([x, y]) => [
-              (x * p.diameter * p.artScale) / 100,
-              (y * p.diameter * p.artScale) / 100,
-            ]),
+      let art;
+      if (paths.length) {
+        art = own(
+          new C(
+            paths.map((poly) =>
+              poly.map(([x, y]) => [
+                (x * p.diameter * p.artScale) / 100,
+                (y * p.diameter * p.artScale) / 100,
+              ]),
+            ),
+            "EvenOdd",
           ),
-          "EvenOdd",
-        ),
-      );
+        );
+      } else {
+        const seed = own(C.square(1, true));
+        art = own(seed.subtract(own(C.square(2, true))));
+      }
       art = own(art.rotate(p.rotation));
       art = own(art.offset(p.inkOffset, "Round", 2, 16));
-      if (p.invert) art = own(limit.subtract(art));
+      if (p.invert && paths.length) art = own(limit.subtract(art));
       else if (own(art.subtract(limit)).area() > 0.03)
         throw Error(
           "Artwork reaches the edge margin. Reduce artwork size, ink width or rotation.",
         );
       art = own(art.intersect(limit).simplify(0.018));
-      if (art.isEmpty())
-        throw Error("No artwork remains. Adjust image threshold or ink width.");
-      const relief = beveled(
-        art,
-        p.relief + 0.02,
-        p.rounding,
-        p.finish,
-        p.draft,
-        p.preserveArtwork,
-        limit,
-        notes,
-        finishInfo,
-      );
-      let tool;
-      if (p.polarity === "raised") {
-        const raised = own(relief.translate([0, 0, p.cakeHeight - 0.02]));
-        cake = own(cake.add(raised));
-        tool = own(
-          own(raised.scale([-1, 1, -1])).translate([
-            0,
-            0,
-            p.backing + p.cakeHeight,
-          ]),
-        );
-        plate = own(blank.subtract(tool));
+      if (art.isEmpty()) {
+        finishInfo.applied = 0;
+        finishInfo.draftRequested = p.draft;
+        finishInfo.draftApplied = 0;
+        finishInfo.reason = "No artwork";
+        notes.push("The design canvas is empty; the cake and plate are plain.");
       } else {
-        tool = own(
-          own(relief.mirror([1, 0, 0])).translate([0, 0, p.backing - 0.02]),
+        const relief = beveled(
+          art,
+          p.relief + 0.02,
+          p.rounding,
+          p.finish,
+          p.draft,
+          p.preserveArtwork,
+          limit,
+          notes,
+          finishInfo,
         );
-        plate = own(blank.add(tool));
-        const cut = own(
-          own(tool.scale([-1, 1, -1])).translate([
-            0,
-            0,
-            p.backing + p.cakeHeight,
-          ]),
-        );
-        cake = own(cake.subtract(cut));
+        let tool;
+        if (p.polarity === "raised") {
+          const raised = own(relief.translate([0, 0, p.cakeHeight - 0.02]));
+          cake = own(cake.add(raised));
+          tool = own(
+            own(raised.scale([-1, 1, -1])).translate([
+              0,
+              0,
+              p.backing + p.cakeHeight,
+            ]),
+          );
+          plate = own(blank.subtract(tool));
+        } else {
+          tool = own(
+            own(relief.mirror([1, 0, 0])).translate([0, 0, p.backing - 0.02]),
+          );
+          plate = own(blank.add(tool));
+          const cut = own(
+            own(tool.scale([-1, 1, -1])).translate([
+              0,
+              0,
+              p.backing + p.cakeHeight,
+            ]),
+          );
+          cake = own(cake.subtract(cut));
+        }
       }
       cake = own(cake.simplify(0.00001));
       plate = own(plate.simplify(0.00001));

@@ -52,6 +52,28 @@ try {
     );
     await page.locator("#edit-design").tap();
     assert(await page.locator("#editor").isVisible());
+    assert(await page.locator("#pattern-canvas").isVisible());
+    const canvasBox = await page.locator("#pattern-canvas").boundingBox();
+    assert(
+      canvasBox && canvasBox.width <= (await page.evaluate(() => innerWidth)),
+    );
+    await page.locator("#drawing-clear").tap();
+    assert.equal(
+      await page.locator("#drawing-symmetry").getAttribute("aria-pressed"),
+      "false",
+    );
+    await page.locator("#drawing-symmetry").tap();
+    await page.touchscreen.tap(
+      canvasBox.x + canvasBox.width * 0.27,
+      canvasBox.y + canvasBox.height * 0.3,
+    );
+    await page.waitForFunction(
+      () =>
+        !document.querySelector("#all-stl").disabled &&
+        window.__studio.drawing.quadrants.every((amount) => amount > 0),
+      null,
+      { timeout: 120000 },
+    );
     await page.locator("#relief-panel > summary").tap();
     await page.locator("[data-finish=chamfer]").tap();
     await page.waitForFunction(
@@ -78,7 +100,7 @@ try {
     });
     assert.deepEqual(errors, []);
     report.checks.push(
-      `${device}: layout, touch editing, geometry, focus swap, export`,
+      `${device}: layout, symmetric touch drawing, geometry, focus swap, export`,
     );
     await context.close();
   }

@@ -51,6 +51,14 @@ try {
     );
   await ready();
   report.checks.push("offline file:// startup and geometry");
+  assert(
+    (await page.evaluate(() =>
+      window.__studio.paths
+        .flat()
+        .flat()
+        .reduce((largest, value) => Math.max(largest, Math.abs(value)), 0),
+    )) > 0.47,
+  );
   assert.equal(await page.locator("#startup-fallback").count(), 0);
   assert.equal(
     await page
@@ -151,6 +159,21 @@ try {
     await page.locator("#editor .control-panel").first().getAttribute("id"),
     "art-panel",
   );
+  assert(await page.locator("#pattern-canvas").isVisible());
+  assert.equal(await page.locator("[data-brush]").count(), 3);
+  assert.equal(
+    await page.locator('[data-brush="medium"]').getAttribute("aria-pressed"),
+    "true",
+  );
+  assert.match(
+    await page.locator('[data-brush="medium"]').getAttribute("aria-label"),
+    /approximately \d+\.\d millimeters/,
+  );
+  assert.equal(
+    await page.locator("#drawing-symmetry").getAttribute("aria-pressed"),
+    "true",
+  );
+  assert(await page.locator("#crop-photo").isDisabled());
   await page.locator('[data-key="artScale"]').first().focus();
   await page.locator('[data-key="artScale"]').first().press("Shift+Tab");
   assert.equal(await page.locator(".help-tip:focus").count(), 1);
@@ -214,10 +237,16 @@ try {
   const saved = await save;
   const projectPath = `test-results/${engine}-project.json`;
   await saved.saveAs(projectPath);
+  const savedProject = JSON.parse(fs.readFileSync(projectPath, "utf8"));
+  assert.equal(savedProject.version, 2);
+  assert.match(savedProject.drawing.image, /^data:image\/png;base64,/);
+  assert.equal(savedProject.drawing.brush, "medium");
+  assert.equal(savedProject.drawing.symmetry, false);
   await page.locator("#project-file").setInputFiles(projectPath);
   await ready();
   report.checks.push("project save and reopen");
   assert.equal(await page.evaluate(() => window.__studio.dirty), false);
+  assert.equal(await page.evaluate(() => window.__studio.drawing.empty), false);
   await page.locator("#help").click();
   assert.equal(await page.locator("[data-traditional-style]").count(), 4);
   await page.locator("[data-traditional-style=lotus]").click();
@@ -232,6 +261,7 @@ try {
   report.checks.push("traditional artwork library");
   await page.locator("#edit-design").click();
   assert.equal(await page.locator("[data-art-choice]").count(), 6);
+  assert.equal(await page.locator('[data-art-choice="blank"]').count(), 0);
   if (!(await page.locator("#art-panel").evaluate((el) => el.open)))
     await page.locator("#art-panel > summary").click();
   await page
@@ -268,9 +298,89 @@ try {
     await page.evaluate(() => window.__studio.sourceKind),
     "builtin",
   );
+  assert.equal(
+    await page.evaluate(() => {
+      const event = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(event);
+      return event.defaultPrevented;
+    }),
+    false,
+  );
+  await page.locator("#drawing-clear").click();
+  await ready();
+  assert.equal(
+    await page.evaluate(() => window.__studio.sourceKind),
+    "drawing",
+  );
+  assert.equal(await page.evaluate(() => window.__studio.paths.length), 0);
+  assert.equal(
+    await page.evaluate(() => window.__studioResult.finish.reason),
+    "No artwork",
+  );
+  assert(
+    await page.evaluate(() => {
+      const positions = window.__studioResult.meshes.cake.positions;
+      const maxZ = positions.reduce(
+        (largest, value, index) =>
+          index % 3 === 2 ? Math.max(largest, value) : largest,
+        -Infinity,
+      );
+      return Math.abs(maxZ - window.__studio.params.cakeHeight) < 0.003;
+    }),
+  );
+  const drawingBox = await page.locator("#pattern-canvas").boundingBox();
+  assert(drawingBox);
+  assert.equal(
+    await page.locator("#drawing-symmetry").getAttribute("aria-pressed"),
+    "false",
+  );
+  await page.locator("#drawing-symmetry").click();
+  await page.mouse.move(
+    drawingBox.x + drawingBox.width * 0.23,
+    drawingBox.y + drawingBox.height * 0.27,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    drawingBox.x + drawingBox.width * 0.36,
+    drawingBox.y + drawingBox.height * 0.3,
+    { steps: 7 },
+  );
+  await page.mouse.up();
+  await ready();
+  const symmetricInk = await page.evaluate(
+    () => window.__studio.drawing.quadrants,
+  );
+  assert(symmetricInk.every((amount) => amount > 100));
+  assert.equal(
+    await page.evaluate(() => window.__studio.sourceKind),
+    "drawing",
+  );
+  assert(await page.locator("#crop-photo").isDisabled());
+  assert.equal(
+    await page.locator("[data-art-choice=custom]").getAttribute("aria-pressed"),
+    "true",
+  );
+  await page.locator('[data-draw-tool="eraser"]').click();
+  await page.locator('[data-brush="bold"]').click();
+  await page.mouse.click(
+    drawingBox.x + drawingBox.width * 0.295,
+    drawingBox.y + drawingBox.height * 0.285,
+  );
+  await ready();
+  const erasedInk = await page.evaluate(
+    () => window.__studio.drawing.quadrants,
+  );
+  assert(erasedInk.every((amount, index) => amount < symmetricInk[index]));
+  await page.locator("#drawing-undo").click();
+  await ready();
+  assert.deepEqual(
+    await page.evaluate(() => window.__studio.drawing.quadrants),
+    symmetricInk,
+  );
+  await page.screenshot({ path: `test-results/${engine}-drawing-editor.png` });
   await page.locator("#close-editor").click();
   report.checks.push(
-    "Edit library: all five SVGs generate, selected states, templates never prompt",
+    "drawing editor: normalized templates, clear-to-plain, three scaled pen sizes, eraser, undo and four-way symmetry",
   );
   const dl = page.waitForEvent("download");
   await page.locator("#all-stl").click();
@@ -301,7 +411,12 @@ try {
   );
   await ready();
   report.checks.push("raster upload and tracing");
-  assert.equal(await page.evaluate(() => window.__studio.sourceKind), "custom");
+  assert.equal(
+    await page.evaluate(() => window.__studio.sourceKind),
+    "drawing",
+  );
+  assert.equal(await page.locator("#crop-photo").isDisabled(), false);
+  assert.equal(await page.locator("#crop-photo").isChecked(), true);
   await page.locator("#help").click();
   let replacementPrompt = false;
   page.once("dialog", async (dialog) => {

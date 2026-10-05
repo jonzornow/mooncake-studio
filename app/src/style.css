@@ -1,5 +1,7 @@
 :root {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-text: Verdana, Geneva, sans-serif;
+  --font-heading: "Trebuchet MS", "Lucida Grande", sans-serif;
+  font-family: var(--font-text);
   color: #302e2a;
   background: #f1efea;
   font-synthesis: none;
@@ -85,7 +87,7 @@ header {
   white-space: nowrap;
 }
 header strong {
-  font-family: Georgia, serif;
+  font-family: var(--font-heading);
   font-size: 23px;
   font-weight: normal;
   letter-spacing: -0.7px;
@@ -374,9 +376,7 @@ p {
   color: #796953;
 }
 .stage-head h2 {
-  font:
-    normal 26px/1.1 Georgia,
-    serif;
+  font: normal 26px/1.1 var(--font-heading);
   margin: 8px 0 6px;
   overflow-wrap: anywhere;
 }
@@ -574,9 +574,7 @@ dialog::backdrop {
   background: #302e2a70;
 }
 dialog h2 {
-  font:
-    normal 26px Georgia,
-    serif;
+  font: normal 26px var(--font-heading);
 }
 dialog p,
 dialog li {
@@ -830,7 +828,7 @@ dialog .close {
   border-radius: 50%;
   color: #765b39;
   background: #fffaf0;
-  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: 11px;
   font-weight: 600;
   line-height: 1;
@@ -851,13 +849,7 @@ dialog .close {
   background: #fffaf0;
   box-shadow: 0 8px 24px #3c291e2b;
   color: #4e3a25;
-  font-family:
-    Iowan Old Style,
-    Palatino Linotype,
-    Book Antiqua,
-    Palatino,
-    Georgia,
-    serif;
+  font-family: var(--font-text);
   font-size: 12px;
   font-weight: normal;
   line-height: 1.38;
@@ -983,7 +975,7 @@ dialog .close {
 }
 /* A paper-and-ink worktable; the editor is a modal on every screen. */
 :root {
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-family: var(--font-text);
   --paper: #fbf7ed;
   --line: #d7cbb5;
   --ink: #473725;
@@ -1003,7 +995,7 @@ header {
   padding: 0 30px;
 }
 header strong {
-  font-family: inherit;
+  font-family: var(--font-heading);
   font-size: 26px;
   letter-spacing: -0.8px;
 }
@@ -1218,6 +1210,7 @@ main,
 }
 .sidebar-head {
   padding: 10px 22px;
+  justify-content: flex-end;
   font-size: 12px;
   font-weight: normal;
 }
@@ -1300,7 +1293,8 @@ label.field,
   color: var(--muted);
 }
 .num {
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-family: var(--font-text);
+  font-variant-numeric: tabular-nums;
   font-size: 10px;
 }
 input[type="number"] {
@@ -1697,9 +1691,7 @@ dialog::backdrop {
   margin-left: 4px;
 }
 .guide-recipe > summary b {
-  font:
-    normal 21px Georgia,
-    serif;
+  font: normal 21px var(--font-heading);
 }
 .guide-recipe > summary small {
   color: var(--muted);
@@ -1834,7 +1826,7 @@ dialog::backdrop {
   place-items: center;
   border: 1px solid var(--line);
   border-radius: 50%;
-  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: 17px;
 }
 
@@ -1909,5 +1901,345 @@ dialog::backdrop {
   .camera-buttons button {
     min-height: 34px;
     padding-inline: 9px;
+  }
+}
+
+/* Drawing is the primary artwork workflow. */
+#editor {
+  width: 520px;
+}
+.pattern-maker {
+  margin: 2px 0 22px;
+  padding: 14px;
+  border: 1px solid #b8bcbe;
+  border-radius: 12px 3px 12px 3px;
+  background: #e9ebea;
+  box-shadow: inset 0 1px #ffffffa8;
+}
+.pattern-maker-title,
+.pattern-library-heading,
+.drawing-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pattern-maker-title {
+  margin-bottom: 11px;
+}
+.pattern-maker-title > span:first-child,
+.pattern-library-heading > span {
+  display: grid;
+  gap: 2px;
+}
+.pattern-maker-title b,
+.pattern-library-heading b {
+  font-size: 14px;
+  font-weight: 600;
+}
+.pattern-maker-title small,
+.pattern-library-heading small,
+.drawing-local {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.25;
+}
+.drawing-local {
+  padding: 3px 7px;
+  border: 1px solid #b9bdbe;
+  border-radius: 999px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.drawing-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+  gap: 8px;
+  margin-bottom: 9px;
+}
+.draw-tool-group,
+.brush-sizes {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 3px;
+}
+.draw-tool-group button,
+.brush-sizes button,
+#drawing-symmetry,
+.drawing-history button {
+  min-height: 42px;
+  border: 1px solid #b3b7b9;
+  border-radius: 4px;
+  background: #f7f7f5;
+  color: #353a3d;
+}
+.draw-tool-group button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.draw-tool-group svg,
+#drawing-symmetry svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+.draw-tool-group button[aria-pressed="true"],
+.brush-sizes button[aria-pressed="true"],
+#drawing-symmetry[aria-pressed="true"] {
+  border-color: #555d61;
+  background: #d9ddde;
+  box-shadow: inset 0 0 0 1px #6d7478;
+  color: #202426;
+}
+.brush-sizes button {
+  display: grid;
+  min-width: 0;
+  padding: 4px 3px 3px;
+  place-items: center;
+}
+.brush-sizes button small {
+  color: #666d71;
+  font: 9px var(--font-text);
+  white-space: nowrap;
+}
+.brush-dot {
+  display: block;
+  width: min(var(--dot), 20px);
+  height: min(var(--dot), 20px);
+  border-radius: 50%;
+  background: currentColor;
+}
+.drawing-board {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid #92989b;
+  border-radius: 5px;
+  background-color: #fbfbf9;
+  background-image:
+    linear-gradient(#8a90920b 1px, transparent 1px),
+    linear-gradient(90deg, #8a90920b 1px, transparent 1px);
+  background-size: 24px 24px;
+  box-shadow:
+    0 5px 18px #20252912,
+    inset 0 0 40px #555d6108;
+}
+#pattern-canvas {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  touch-action: none;
+}
+#pattern-canvas:focus-visible {
+  outline: 2px solid #555d61;
+  outline-offset: -4px;
+}
+.drawing-guide {
+  position: absolute;
+  z-index: 3;
+  /* Matches the four-pixel tracing inset on the 512 px drawing surface. */
+  inset: 0.8%;
+  border: 1px solid #676e7245;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.drawing-board[data-shape="square"] .drawing-guide {
+  border-radius: 7px;
+}
+.drawing-guide::before,
+.drawing-guide::after {
+  content: "";
+  position: absolute;
+  background: #69707438;
+  transition: opacity 120ms ease;
+}
+.drawing-guide::before {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+}
+.drawing-guide::after {
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 1px;
+}
+.drawing-board.symmetry-off .drawing-guide::before,
+.drawing-board.symmetry-off .drawing-guide::after {
+  opacity: 0;
+}
+.drawing-actions {
+  margin-top: 9px;
+  align-items: stretch;
+}
+#drawing-symmetry {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding-inline: 10px;
+  white-space: nowrap;
+}
+.drawing-history {
+  display: flex;
+  gap: 3px;
+}
+.drawing-history button {
+  min-height: 42px;
+  padding-inline: 9px;
+}
+.drawing-history button:disabled {
+  cursor: default;
+}
+.drawing-note {
+  min-height: 17px;
+  margin: 8px 1px 0;
+  color: #61676a;
+  font-size: 10px;
+  line-height: 1.35;
+}
+.pattern-library-heading {
+  margin: 2px 0 9px;
+}
+.edit-art-library {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0 0 12px;
+}
+.edit-art-library button {
+  min-width: 0;
+  padding: 7px 4px;
+}
+.edit-art-library img,
+.edit-art-library .custom-art-symbol {
+  display: grid;
+  width: 100%;
+  max-width: 58px;
+  height: 54px;
+  margin: auto;
+  place-items: center;
+}
+.edit-art-library .custom-art-symbol {
+  color: #596064;
+  font-size: 29px;
+}
+.edit-art-library b {
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.drawing-import.drop {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 8px 11px;
+  border-style: solid;
+  background: #f4f5f3;
+  text-align: left;
+}
+.drawing-import.drop img {
+  grid-row: span 2;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  border: 1px solid #c4c8c9;
+  border-radius: 50%;
+  background: #fff;
+  object-fit: contain;
+}
+.drawing-import.drop strong {
+  align-self: end;
+  font-size: 12px;
+  font-weight: 600;
+}
+.drawing-import.drop span {
+  align-self: start;
+  font-size: 10px;
+}
+
+@media (max-width: 720px) {
+  #editor {
+    width: calc(100vw - 10px);
+    max-width: none;
+    height: calc(100dvh - 10px);
+    max-height: calc(100dvh - 10px);
+  }
+  .editor-head {
+    padding: 10px 15px;
+  }
+  .editor-head h2 {
+    font-size: 23px;
+  }
+  .control-panel > summary {
+    padding-right: 15px;
+    padding-left: 15px;
+  }
+  .control-panel[open] > summary {
+    padding-left: 13px;
+  }
+  .panel-content {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+  .pattern-maker {
+    padding: 10px;
+  }
+  .drawing-toolbar {
+    grid-template-columns: 1fr;
+  }
+  .draw-tool-group button,
+  .brush-sizes button,
+  #drawing-symmetry,
+  .drawing-history button {
+    min-height: 44px;
+  }
+  .drawing-actions {
+    flex-wrap: wrap;
+  }
+  #drawing-symmetry {
+    flex: 1 1 150px;
+    justify-content: center;
+  }
+  .drawing-history {
+    flex: 1 1 auto;
+  }
+  .drawing-history button {
+    flex: 1;
+  }
+  .edit-art-library {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .edit-art-library img,
+  .edit-art-library .custom-art-symbol {
+    height: 46px;
+  }
+  .edit-art-library b {
+    font-size: 10px;
+  }
+  .edit-art-library small {
+    font-size: 8px;
+  }
+}
+
+@media (max-width: 370px) {
+  .drawing-local {
+    display: none;
+  }
+  .edit-art-library {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

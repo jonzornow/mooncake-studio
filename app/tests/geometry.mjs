@@ -60,6 +60,20 @@ for (const opts of [
 }
 for (const opts of [{ opening: 44 }, { bodyHeight: 25 }, { artScale: 99 }])
   assert.throws(() => b({ ...defaults, ...opts }, art));
+
+const blank = b(defaults, []);
+const blankMaxZ = (mesh) =>
+  Math.max(...mesh.positions.filter((_, index) => index % 3 === 2));
+assert.equal(blank.artArea, 0);
+assert.equal(blank.finish.reason, "No artwork");
+assert(Math.abs(blankMaxZ(blank.meshes.cake) - defaults.cakeHeight) < 0.003);
+assert(
+  Math.abs(blankMaxZ(blank.meshes.plate) - blank.effectiveBacking) < 0.003,
+);
+for (const result of Object.values(blank.validation)) {
+  assert(result.float32MeshClosed);
+  assert.equal(result.components, 1);
+}
 fs.writeFileSync(
   new URL("./geometry-validation.json", import.meta.url),
   JSON.stringify({ cases: results, invalidSettingsBlocked: 3 }, null, 2),

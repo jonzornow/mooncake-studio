@@ -8,6 +8,7 @@ import { STLExporter } from "three/addons/exporters/STLExporter.js";
 import { zipSync, strToU8 } from "fflate";
 import { defaults, profile } from "./geometry.js";
 import { loadImage, traceImage, svgFor, validateSVG } from "./trace.js";
+import { createDrawingPad, drawingBrushMillimeters } from "./drawing.js";
 import lotusSvg from "./art/lotus.svg?raw";
 import peonySvg from "./art/peony.svg?raw";
 import longevitySvg from "./art/longevity.svg?raw";
@@ -24,7 +25,10 @@ let params = { ...defaults },
   worker,
   dirty = false,
   initializing = true,
-  sourceKind = "builtin";
+  sourceKind = "builtin",
+  drawingPad = null,
+  importedPattern = null,
+  importRenderVersion = 0;
 const look = {
   realistic: true,
   bake: 0.58,
@@ -167,6 +171,14 @@ document
 const guideGeometry = [...document.querySelectorAll("#guide p")].find((p) =>
   p.textContent.startsWith("Rounded relief edges"),
 );
+const guideIntro = $("#guide > p");
+guideIntro.textContent =
+  "Everything runs in this browser, including drawing, image tracing, geometry and STL export. Patterns never leave your computer, and an internet connection is not needed to use this self-contained app.";
+const guideSteps = $("#guide .help-list").children;
+guideSteps[0].innerHTML =
+  "Open <strong>Edit Cake</strong> to draw with a mouse, finger or stylus. Four-way symmetry mirrors each stroke across both axes; the cake updates when the stroke ends.";
+guideSteps[1].textContent =
+  "Begin with a blank canvas, a built-in pattern or an imported black-and-white image. Loaded patterns remain editable. Broad, smooth shapes print and release more reliably than very fine details.";
 guideGeometry.textContent =
   "Design walls use the selected draft angle to improve pastry release. Preserve artwork is on by default: the intended line is retained at the visible relief face while the walls grow outward toward the base. Small enclosed gaps can therefore close below the face. Turn it off to keep the base fixed and taper inward, which narrows the face. Rounded relief edges use connected circular-profile facets; chamfers use straight sloping faces. Applied edge rounding may be limited by relief depth or the available edge margin. Engraved plates automatically thicken to retain 1.5 mm of solid backing. The blank pusher keeps the chosen base thickness. The tested sleeve remains straight so the pusher and interchangeable plates retain their established fit. Perimeter and body rims are square. Pastry appearance controls are cosmetic; Exact geometry shows the exported mesh. The preview does not predict dough flow or baking expansion, and volume is not a gram rating.";
 // Compact workspace: group controls by task without changing their behavior.
@@ -181,7 +193,7 @@ function panel(id, title, description) {
 }
 const panels = [
   panel("shape-panel", "Shape & size", "Classic · 45 × 22 mm"),
-  panel("art-panel", "Artwork", "Rocket & clouds"),
+  panel("art-panel", "Draw your pattern", "Rocket & clouds"),
   panel("relief-panel", "Relief & edges", "Raised · 3.5 mm · Fillet"),
   panel("pastry-panel", "Pastry appearance", "Preview only"),
   panel("hardware-panel", "Mold dimensions", "Fit & clearances"),
@@ -216,7 +228,7 @@ aside.replaceChildren();
 const asideHead = document.createElement("div");
 asideHead.className = "sidebar-head";
 asideHead.innerHTML =
-  '<span>Design settings</span><button id="collapse-panels" title="Collapse all sections">Collapse all</button>';
+  '<button id="collapse-panels" title="Collapse all sections">Collapse all</button>';
 const designStatus = document.createElement("p");
 designStatus.className = "design-status";
 designStatus.id = "design-status";
@@ -234,7 +246,7 @@ panels[1].open = true;
 const artworkLibrary = document.createElement("div");
 artworkLibrary.className = "tradition-library edit-art-library";
 artworkLibrary.setAttribute("role", "group");
-artworkLibrary.setAttribute("aria-label", "Choose artwork");
+artworkLibrary.setAttribute("aria-label", "Start from a pattern");
 artworkLibrary.innerHTML =
   [{ id: "rocket", name: "Rocket", url: rocketURL }, ...traditionalStyles]
     .map(
@@ -242,8 +254,52 @@ artworkLibrary.innerHTML =
         `<button type="button" data-art-choice="${style.id}" aria-pressed="false"><img src="${style.url}" alt=""><b>${style.name}</b></button>`,
     )
     .join("") +
-  '<button type="button" data-art-choice="custom" aria-pressed="false"><span class="custom-art-symbol" aria-hidden="true">+</span><b>Custom</b><small>Upload artwork</small></button>';
+  '<button type="button" data-art-choice="custom" aria-pressed="false"><span class="custom-art-symbol" aria-hidden="true">+</span><b>Load file</b><small>PNG · SVG</small></button>';
 panels[1].querySelector(".panel-content").prepend(artworkLibrary);
+const patternLibraryHeading = document.createElement("div");
+patternLibraryHeading.className = "pattern-library-heading";
+patternLibraryHeading.innerHTML =
+  "<span><b>Start from a pattern</b><small>Every pattern can be edited on the canvas.</small></span>";
+artworkLibrary.before(patternLibraryHeading);
+const drawingMount = document.createElement("section");
+drawingPad = createDrawingPad(drawingMount, {
+  brushMillimeters: (pixels) =>
+    drawingBrushMillimeters(pixels, params.diameter, params.artScale),
+  onEdit: ({ empty }) => {
+    if (!initializing) dirty = true;
+    importedPattern = null;
+    sourceImage = drawingPad.canvas;
+    cropPhoto = false;
+    $("#crop-photo").checked = false;
+    $("#crop-photo").disabled = true;
+    if (empty) {
+      sourceName = "Blank canvas";
+      sourceKind = "drawing";
+      paths = [];
+      $("#art-preview").src = drawingPad.canvas.toDataURL("image/png");
+      setSourceMeta();
+      requestBuild();
+      return;
+    }
+    if (sourceKind !== "drawing" || sourceName === "Blank canvas") {
+      sourceName =
+        sourceKind === "blank" || sourceName === "Blank canvas"
+          ? "Hand-drawn pattern"
+          : `${sourceName.replace(/ · edited$/, "")} · edited`;
+      sourceKind = "drawing";
+      setSourceMeta();
+    }
+    try {
+      retrace();
+      requestBuild();
+    } catch (error) {
+      invalidate(error.message);
+    }
+  },
+});
+drawingPad.shape = params.style === "square" ? "square" : "round";
+drawingPad.updateBrushLabels();
+patternLibraryHeading.before(drawingMount);
 function syncArtworkChoices() {
   const selected =
     sourceKind === "builtin"
@@ -269,7 +325,7 @@ for (const button of artworkLibrary.querySelectorAll("button")) {
       id === "rocket"
         ? rocket(true)
         : loadTraditional(traditionalStyles.find((style) => style.id === id));
-    operation.catch((error) => toast(error.message));
+    Promise.resolve(operation).catch((error) => toast(error.message));
   };
 }
 for (const panel of panels)
@@ -282,7 +338,7 @@ const editor = document.createElement("dialog");
 editor.id = "editor";
 editor.setAttribute("aria-labelledby", "editor-title");
 editor.innerHTML =
-  '<div class="editor-head"><h2 id="editor-title">Edit</h2><button id="close-editor">Done</button></div>';
+  '<div class="editor-head"><h2 id="editor-title">Edit Cake</h2><button id="close-editor">Done</button></div>';
 editor.append(aside);
 document.body.append(editor);
 const editButton = document.createElement("button");
@@ -375,6 +431,14 @@ $("#guide .help-list").after(guideSafety);
 const traditionsHeading = [...document.querySelectorAll("#guide h2")].find(
   (heading) => heading.textContent === "Shapes & traditions",
 );
+const traditionsCopy = traditionsHeading.nextElementSibling;
+traditionsCopy.textContent =
+  "Cantonese-style cakes are commonly molded with intricate tops. The classic, petal, fluted, square and smooth presets here are geometric design options, not claims that each profile defines a regional recipe.";
+const referenceCopy = [...document.querySelectorAll("#guide p")].find((p) =>
+  p.textContent.startsWith("References:"),
+);
+referenceCopy.querySelector('a[href*="Snow_skin"]')?.previousSibling?.remove();
+referenceCopy.querySelector('a[href*="Snow_skin"]')?.remove();
 const traditionLibrary = document.createElement("section");
 traditionLibrary.className = "tradition-library";
 traditionLibrary.setAttribute("aria-label", "Traditional artwork library");
@@ -388,9 +452,9 @@ traditionsHeading.after(traditionLibrary);
 const recipe = document.createElement("details");
 recipe.className = "guide-recipe";
 recipe.innerHTML = `
-  <summary><span><b>Vegan mooncake recipe</b><small>Leanne Mai-ly Hilgart · about 36 small 50 g cakes</small></span></summary>
+  <summary><span><b>Mooncake recipe</b><small>Leanne Mai-ly Hilgart · about 36 small 50 g cakes</small></span></summary>
   <div class="recipe-body">
-    <p>These are vegan Cantonese-style baked mooncakes made with prepared sweet bean or seed pastes and a homemade alkaline solution instead of commercial kansui. Each cake uses <strong>22 g pastry + 28 g filling</strong>.</p>
+    <p>These are Cantonese-style baked mooncakes made with prepared sweet bean or seed pastes and a homemade alkaline solution instead of commercial kansui. Each cake uses <strong>22 g pastry + 28 g filling</strong>.</p>
     <p>This is easiest as a two-day project: prepare the alkaline ingredient and fillings on day one, then make the dough, mold and bake on day two. It can be completed in one day, but advance preparation makes a mooncake-making party much more relaxed.</p>
 
     <details open>
@@ -403,7 +467,7 @@ recipe.innerHTML = `
         <li>9 g homemade alkaline solution (below), or commercial kansui/lye water</li>
       </ul>
       <h4>Fillings</h4>
-      <p>About 1,000 g prepared sweet bean or seed paste total. Good options include red bean, matcha lotus or bean, lotus seed, white bean, chestnut, chestnut–white-bean and black sesame. Check packaged filling ingredients when baking vegan.</p>
+      <p>About 1,000 g prepared sweet bean or seed paste total. Good options include red bean, matcha lotus or bean, lotus seed, white bean, chestnut, chestnut–white-bean and black sesame.</p>
       <p>Prepared fillings are often sold as dense rectangular tubes or bricks in clear airtight packaging. If they are not with baking ingredients, check the packaged-dessert section of an Asian grocery store.</p>
       <h4>For molding & baking</h4>
       <ul>
@@ -411,7 +475,7 @@ recipe.innerHTML = `
         <li>Cornstarch for dusting</li>
         <li>Parchment paper and baking sheets</li>
         <li>Digital kitchen scale</li>
-        <li>Small pastry brush for optional vegan egg wash</li>
+        <li>Small pastry brush for optional wash</li>
       </ul>
     </details>
 
@@ -448,13 +512,13 @@ recipe.innerHTML = `
       <p>Flatten one dough ball into a small disc with a slightly thicker center and thinner edges. Place a 28 g filling ball in the center and gently work the pastry upward while rotating. Enclose the filling, pinch the opening closed and roll gently to smooth.</p>
       <h4>4. Press</h4>
       <p>Line baking sheets with parchment. Very lightly dust the filled ball and/or mold with cornstarch and tap away excess. Put the ball in a 50 g press, set it directly on the sheet, press firmly and evenly for a few seconds, release, then lift straight upward. Leave pressed cakes in place.</p>
-      <h4>5. Optional vegan egg wash</h4>
-      <p>A vegan egg alternative can give a more golden, glossy crust. Aquafaba may also work, although that variation was not tested for this recipe. Apply any wash extremely sparingly with a nearly dry pastry brush so it does not pool in the grooves. It is also fine to omit the wash for a matte finish.</p>
+      <h4>5. Optional wash</h4>
+      <p>An egg alternative prepared according to its directions can give a more golden, glossy crust. Aquafaba may also work, although that variation was not tested for this recipe. Apply any wash extremely sparingly with a nearly dry pastry brush so it does not pool in the grooves. It is also fine to omit the wash for a matte finish.</p>
       <h4>6. Bake</h4>
       <ol>
         <li>Heat the oven to 350°F / 175°C.</li>
         <li>Bake one parchment-lined tray (about 12 cakes) for 8 minutes.</li>
-        <li>Remove and rest for 5 minutes. Apply a very thin egg wash now, if using.</li>
+        <li>Remove and rest for 5 minutes. Apply a very thin wash now, if using.</li>
         <li>Return to the oven for another 14 minutes, then cool completely. Repeat with the remaining trays.</li>
       </ol>
       <h4>7. Rest & eat</h4>
@@ -478,15 +542,34 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") exportMenu.open = false;
 });
 const upload = $("#upload");
+upload.classList.add("drawing-import");
+upload.querySelector("br")?.remove();
+upload.querySelector("span").textContent =
+  "Load PNG, JPEG, WebP or SVG into the canvas";
 upload.setAttribute("role", "button");
 upload.tabIndex = 0;
-upload.setAttribute("aria-label", "Upload artwork");
+upload.setAttribute(
+  "aria-label",
+  "Load a pattern file into the drawing canvas",
+);
+const traceDetails = panels[1].querySelector(".panel-content > details");
+traceDetails.querySelector("summary").textContent = "Import & tracing";
+const cropLabel = $("#crop-photo").closest("label");
+cropLabel.lastChild.textContent = " Crop imported file to fill cake shape";
+traceDetails.querySelector("summary").after(cropLabel);
 upload.addEventListener("keydown", (e) => {
   if (e.key === "Enter" || e.key === " ") {
     e.preventDefault();
     chooseImage();
   }
 });
+function setSourceMeta() {
+  $("#source-name").textContent = sourceName;
+  if (document.querySelector(".pastry-stage > .hero")?.id === "hero")
+    $("#cake-title").textContent = sourceName;
+  syncArtworkChoices();
+  updateSummaries();
+}
 function updateSummaries() {
   const text = [
     `${params.diameter} × ${params.cakeHeight} mm`,
@@ -873,9 +956,11 @@ function updateScene() {
   updateSummaries();
   const f = result.finish;
   $("#finish-info").textContent =
-    f.type === "sharp"
-      ? `Sharp tip edges · ${f.draftApplied.toFixed(1)}° wall draft applied ${params.preserveArtwork ? "outward from the artwork face" : "inward toward the artwork face"}.`
-      : `Applied ${f.type === "round" ? "fillet radius" : "chamfer"}: ${f.applied.toFixed(3)} mm (requested ${f.requested.toFixed(2)} mm), with ${f.draftApplied.toFixed(1)}° wall draft ${params.preserveArtwork ? "outward from the artwork face" : "inward toward the artwork face"}. ${f.reason ? f.reason + ". " : ""}These change exported relief geometry; pastry softness is cosmetic.`;
+    f.reason === "No artwork"
+      ? "No artwork · the cake surface and design plate are plain."
+      : f.type === "sharp"
+        ? `Sharp tip edges · ${f.draftApplied.toFixed(1)}° wall draft applied ${params.preserveArtwork ? "outward from the artwork face" : "inward toward the artwork face"}.`
+        : `Applied ${f.type === "round" ? "fillet radius" : "chamfer"}: ${f.applied.toFixed(3)} mm (requested ${f.requested.toFixed(2)} mm), with ${f.draftApplied.toFixed(1)}° wall draft ${params.preserveArtwork ? "outward from the artwork face" : "inward toward the artwork face"}. ${f.reason ? f.reason + ". " : ""}These change exported relief geometry; pastry softness is cosmetic.`;
   $("#backing-info").textContent =
     `Actual design plate base: ${result.effectiveBacking.toFixed(2)} mm. ${params.polarity === "raised" ? `Solid backing beneath engraving: ${(result.effectiveBacking - params.relief).toFixed(2)} mm.` : "Raised pattern adds " + params.relief.toFixed(2) + " mm."} Blank pusher: ${params.backing.toFixed(2)} mm.`;
   setMesh(views.hero, result.meshes.cake, "cake");
@@ -890,8 +975,10 @@ function updateScene() {
 function sync() {
   updateSummaries();
   syncLook();
+  drawingPad.shape = params.style === "square" ? "square" : "round";
+  drawingPad.updateBrushLabels();
   $("#crop-photo").checked = cropPhoto;
-  $("#crop-photo").disabled = !sourceImage;
+  $("#crop-photo").disabled = !importedPattern;
   for (const e of document.querySelectorAll("[data-key]"))
     e.value = params[e.dataset.key];
   $("#polarity").value = params.polarity;
@@ -908,15 +995,53 @@ function sync() {
     e.classList.toggle("selected", e.dataset.preset === params.style);
 }
 function retrace() {
+  const image = drawingPad?.canvas || sourceImage;
+  if (!image) throw Error("Load or draw a pattern first.");
   const t = traceImage(
-    sourceImage,
+    image,
     params.threshold,
-    cropPhoto ? (params.style === "square" ? "square" : "round") : null,
+    drawingPad ? (params.style === "square" ? "square" : "round") : null,
   );
   paths = t.paths;
   $("#art-preview").src = t.preview;
   $("#trace-info").textContent =
-    `${cropPhoto ? (params.style === "square" ? "Centered square crop. " : "Centered circular crop. ") : ""}Traced locally at 384 px into ${paths.length} contours. ${t.removed} tiny specks removed (<6 px²). SVGs are rasterized before tracing.`;
+    `${params.style === "square" ? "Centered square working area. " : "Centered circular working area. "}Traced locally at 384 px into ${paths.length} contours. ${t.removed} tiny specks removed (<6 px²). Imported files become editable canvas ink.`;
+}
+function drawingCrop() {
+  return params.style === "square" ? "square" : "round";
+}
+let importTimer;
+async function renderImportedPattern(renderId = ++importRenderVersion) {
+  if (!importedPattern) return;
+  await drawingPad.loadPattern(
+    importedPattern.image,
+    params.threshold,
+    cropPhoto ? drawingCrop() : null,
+  );
+  if (renderId !== importRenderVersion) return;
+  sourceImage = drawingPad.canvas;
+  retrace();
+  requestBuild();
+}
+async function applyPatternImage(
+  image,
+  { name, kind, crop = false, retainImport = true } = {},
+) {
+  importRenderVersion++;
+  importedPattern = retainImport ? { image } : null;
+  cropPhoto = crop;
+  await drawingPad.loadPattern(
+    image,
+    params.threshold,
+    crop ? drawingCrop() : null,
+  );
+  sourceImage = drawingPad.canvas;
+  sourceName = name;
+  sourceKind = kind;
+  setSourceMeta();
+  sync();
+  retrace();
+  requestBuild();
 }
 for (const e of document.querySelectorAll("[data-key]"))
   e.addEventListener("input", () => {
@@ -937,6 +1062,19 @@ for (const e of document.querySelectorAll("[data-key]"))
     params[k] = v;
     for (const t of document.querySelectorAll(`[data-key="${k}"]`))
       if (t !== e) t.value = v;
+    if (k === "diameter" || k === "artScale") drawingPad.updateBrushLabels();
+    if (k === "threshold" && importedPattern) {
+      clearTimeout(importTimer);
+      const renderId = ++importRenderVersion;
+      importTimer = setTimeout(
+        () =>
+          renderImportedPattern(renderId).catch((error) =>
+            invalidate(error.message),
+          ),
+        140,
+      );
+      return;
+    }
     if (k === "threshold" && sourceImage) {
       try {
         retrace();
@@ -970,7 +1108,11 @@ for (const e of document.querySelectorAll("[data-preset]"))
     params.scallop =
       params.style === "petal" ? 2.5 : params.style === "fluted" ? 0.7 : 1.1;
     sync();
-    if (sourceImage && cropPhoto) {
+    if (importedPattern && cropPhoto) {
+      renderImportedPattern().catch((error) => invalidate(error.message));
+      return;
+    }
+    if (sourceImage) {
       try {
         retrace();
       } catch (err) {
@@ -1047,13 +1189,27 @@ $("#orbit").onclick = () => {
   if (result) setMesh(v, result.meshes[kind], kind);
 };
 function mayReplace(message) {
-  return !(dirty || sourceKind === "custom") || window.confirm(message);
+  if (isTemplateArtwork()) return true;
+  const isPersonalArtwork = ["custom", "drawing", "project"].includes(
+    sourceKind,
+  );
+  return !(dirty || isPersonalArtwork) || window.confirm(message);
+}
+function isTemplateArtwork() {
+  return (
+    sourceKind === "blank" ||
+    sourceKind === "builtin" ||
+    sourceKind.startsWith("traditional:")
+  );
 }
 function mayReplaceArtwork(message) {
-  const isTemplate =
-    sourceKind === "builtin" || sourceKind.startsWith("traditional:");
+  const isPersonalArtwork = ["custom", "drawing", "project"].includes(
+    sourceKind,
+  );
   return (
-    isTemplate || !(dirty || sourceKind === "custom") || window.confirm(message)
+    isTemplateArtwork() ||
+    !(dirty || isPersonalArtwork) ||
+    window.confirm(message)
   );
 }
 function chooseImage() {
@@ -1072,20 +1228,19 @@ $("#image-file").onchange = async (e) => {
     if (f.size > 15e6) throw Error("Please use an image smaller than 15 MB.");
     if (f.type === "image/svg+xml" || /\.svg$/i.test(f.name))
       validateSVG(await f.text());
+    const vector = f.type === "image/svg+xml" || /\.svg$/i.test(f.name);
     const u = URL.createObjectURL(f);
+    let image;
     try {
-      sourceImage = await loadImage(u);
+      image = await loadImage(u);
     } finally {
       URL.revokeObjectURL(u);
     }
-    cropPhoto = f.type !== "image/svg+xml";
-    $("#crop-photo").checked = cropPhoto;
-    $("#crop-photo").disabled = false;
-    sourceName = f.name.replace(/\.[^.]+$/, "");
-    sourceKind = "custom";
-    retrace();
-    $("#source-name").textContent = sourceName;
-    requestBuild();
+    await applyPatternImage(image, {
+      name: f.name.replace(/\.[^.]+$/, ""),
+      kind: "drawing",
+      crop: !vector,
+    });
   } catch (err) {
     invalidate(err.message);
   }
@@ -1099,15 +1254,12 @@ async function rocket(confirmReplacement = false) {
     )
   )
     return;
-  sourceImage = await loadImage(`${rocketURL}`);
-  cropPhoto = false;
-  $("#crop-photo").checked = false;
-  $("#crop-photo").disabled = false;
-  sourceName = "Rocket & clouds";
-  sourceKind = "builtin";
-  $("#source-name").textContent = sourceName;
-  retrace();
-  requestBuild();
+  const image = await loadImage(`${rocketURL}`);
+  await applyPatternImage(image, {
+    name: "Rocket & clouds",
+    kind: "builtin",
+    retainImport: false,
+  });
 }
 async function loadTraditional(style) {
   if (
@@ -1116,15 +1268,12 @@ async function loadTraditional(style) {
     )
   )
     return;
-  sourceImage = await loadImage(style.url);
-  cropPhoto = false;
-  $("#crop-photo").checked = false;
-  $("#crop-photo").disabled = false;
-  sourceName = style.name;
-  sourceKind = `traditional:${style.id}`;
-  $("#source-name").textContent = sourceName;
-  retrace();
-  requestBuild();
+  const image = await loadImage(style.url);
+  await applyPatternImage(image, {
+    name: style.name,
+    kind: `traditional:${style.id}`,
+    retainImport: false,
+  });
   $("#guide").close();
 }
 for (const button of document.querySelectorAll("[data-traditional-style]"))
@@ -1136,14 +1285,8 @@ for (const button of document.querySelectorAll("[data-traditional-style]"))
   };
 $("#crop-photo").onchange = () => {
   cropPhoto = $("#crop-photo").checked;
-  if (sourceImage) {
-    try {
-      retrace();
-      requestBuild();
-    } catch (err) {
-      invalidate(err.message);
-    }
-  }
+  if (importedPattern)
+    renderImportedPattern().catch((error) => invalidate(error.message));
 };
 $("#reset-art").onclick = () => rocket(true);
 $("#reset").onclick = () => {
@@ -1153,21 +1296,21 @@ $("#reset").onclick = () => {
   if (sourceImage) retrace();
   requestBuild();
 };
+function projectData() {
+  return {
+    format: "mooncake-studio",
+    version: 2,
+    params,
+    paths,
+    sourceName,
+    sourceKind,
+    appearance: look,
+    drawing: drawingPad.serialize(),
+  };
+}
 $("#save").onclick = () => {
   download(
-    JSON.stringify(
-      {
-        format: "mooncake-studio",
-        version: 1,
-        params,
-        paths,
-        sourceName,
-        sourceKind,
-        appearance: look,
-      },
-      null,
-      2,
-    ),
+    JSON.stringify(projectData(), null, 2),
     "mooncake-project.json",
     "application/json",
   );
@@ -1242,17 +1385,32 @@ $("#project-file").onchange = async (e) => {
     params = next;
     invalidInputs.clear();
     paths = p.paths;
-    sourceImage = null;
     sourceName =
       typeof p.sourceName === "string"
         ? p.sourceName.slice(0, 120)
         : "Imported project";
     sourceKind =
       typeof p.sourceKind === "string" ? p.sourceKind.slice(0, 120) : "project";
-    $("#source-name").textContent = sourceName;
-    $("#art-preview").src =
-      "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgFor(paths));
+    importedPattern = null;
+    importRenderVersion++;
     sync();
+    if (p.drawing) {
+      if (
+        typeof p.drawing.image !== "string" ||
+        p.drawing.image.length > 3000000 ||
+        !p.drawing.image.startsWith("data:image/png;base64,")
+      )
+        throw Error("Invalid saved drawing.");
+      await drawingPad.loadDataURL(p.drawing.image);
+      drawingPad.restoreSettings(p.drawing);
+    } else {
+      await drawingPad.loadDataURL(
+        "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgFor(paths)),
+      );
+    }
+    sourceImage = drawingPad.canvas;
+    setSourceMeta();
+    $("#art-preview").src = drawingPad.canvas.toDataURL("image/png");
     requestBuild();
     dirty = false;
   } catch (err) {
@@ -1284,21 +1442,7 @@ $("#all-stl").onclick = () => {
   for (const k of ["body", "plate", "pusher"])
     files[`mooncake-${k}.stl`] = stl(k);
   files["cake-reference.stl"] = stl("cake");
-  files["project.json"] = strToU8(
-    JSON.stringify(
-      {
-        format: "mooncake-studio",
-        version: 1,
-        params,
-        paths,
-        sourceName,
-        sourceKind,
-        appearance: look,
-      },
-      null,
-      2,
-    ),
-  );
+  files["project.json"] = strToU8(JSON.stringify(projectData(), null, 2));
   files["validation.json"] = strToU8(
     JSON.stringify(
       {
@@ -1321,8 +1465,31 @@ $("#all-stl").onclick = () => {
 };
 $("#help").onclick = () => $("#guide").showModal();
 $("#guide .close").onclick = () => $("#guide").close();
+const guide = $("#guide");
+let guideBackdropPress = false;
+const outsideGuide = (event) => {
+  const rect = guide.getBoundingClientRect();
+  return (
+    event.target === guide &&
+    (event.clientX < rect.left ||
+      event.clientX > rect.right ||
+      event.clientY < rect.top ||
+      event.clientY > rect.bottom)
+  );
+};
+guide.addEventListener("pointerdown", (event) => {
+  guideBackdropPress = outsideGuide(event);
+});
+guide.addEventListener("click", (event) => {
+  if (guideBackdropPress && outsideGuide(event)) guide.close();
+  guideBackdropPress = false;
+});
+guide.addEventListener("close", () => {
+  guideBackdropPress = false;
+  $("#help").focus();
+});
 window.addEventListener("beforeunload", (event) => {
-  if (!dirty) return;
+  if (!dirty || isTemplateArtwork()) return;
   event.preventDefault();
   event.returnValue = "";
 });
@@ -1379,6 +1546,20 @@ window.__studio = {
   },
   get sourceKind() {
     return sourceKind;
+  },
+  get drawing() {
+    const canvas = drawingPad.canvas;
+    const data = canvas
+      .getContext("2d", { willReadFrequently: true })
+      .getImageData(0, 0, canvas.width, canvas.height).data;
+    const quadrants = [0, 0, 0, 0];
+    for (let y = 0; y < canvas.height; y++)
+      for (let x = 0; x < canvas.width; x++)
+        if (data[(y * canvas.width + x) * 4 + 3] > 24)
+          quadrants[
+            (y >= canvas.height / 2 ? 2 : 0) + (x >= canvas.width / 2 ? 1 : 0)
+          ]++;
+    return { ...drawingPad.state, empty: drawingPad.empty, quadrants };
   },
   setParams(p) {
     Object.assign(params, p);

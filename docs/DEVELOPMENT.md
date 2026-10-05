@@ -30,6 +30,7 @@ The app requires WebGL 2, WebAssembly, workers, Canvas, and native dialogs. On i
 ## Project map
 
 - `src/main.js` — interface, project files, rendering, and exports
+- `src/drawing.js` — pointer drawing, brush sizing, symmetry, and history
 - `src/geometry.js` — mold, plate, pusher, relief, and fit geometry
 - `src/trace.js` — raster and SVG artwork tracing
 - `src/pastry.js` — cosmetic pastry preview

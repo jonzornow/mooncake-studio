@@ -1,6 +1,6 @@
 # Mooncake Studio
 
-Design a mooncake and matching printable mold entirely in your browser. Upload black-and-white artwork, adjust the cake and relief, preview the result, and export the mold body, interchangeable design plate, and pusher as STL files.
+Draw a mooncake pattern directly in your browser—or load a black-and-white image or SVG and edit it—then preview the cake and export the mold body, interchangeable design plate, and pusher as STL files.
 
 ## [Open Mooncake Studio](https://jonzornow.github.io/mooncake-studio/)
 
@@ -27,10 +27,11 @@ Both images use matched 1024 × 1024 framing and closely matched cake scale and 
 
 ## Use
 
-1. Open **Edit Cake** and choose built-in art or upload PNG, JPEG, WebP, or vector-only SVG artwork.
-2. Set the cake profile, design depth, draft, polarity, and edge finish.
-3. Inspect the cake and tooling previews.
-4. Select **Export mold set** and import the STLs into your slicer as millimeters at 100% scale.
+1. Open **Edit Cake** and draw with three print-aware pen widths. At the default size they are about 1.1, 1.8, and 2.8 mm on the cake; the labels rescale with cake and artwork size. Use the eraser, undo/redo, or four-way symmetry to build balanced patterns quickly.
+2. Start from a built-in SVG pattern or load a PNG, JPEG, WebP, or vector-only SVG file. Loaded patterns remain editable; use **Clear** for a blank canvas and plain plate.
+3. Set the cake profile, design depth, draft, polarity, and edge finish.
+4. Inspect the cake and tooling previews.
+5. Select **Export mold set** and import the STLs into your slicer as millimeters at 100% scale.
 
 The default 45 mm straight-sided sleeve is the physically tested profile. Cosmetic pastry texture is never exported. Fillets, chamfers, relief, and draft are represented in the STL geometry; real dough release and baking behavior still require a test print and bake.
 
