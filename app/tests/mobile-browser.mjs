@@ -97,6 +97,10 @@ try {
     );
     const download = page.waitForEvent("download");
     await page.locator("#all-stl").tap();
+    if (await page.locator("#file-save-dialog").isVisible()) {
+      await page.locator("[data-file-download]").tap();
+      await page.locator("[data-file-close]").tap();
+    }
     assert((await download).suggestedFilename().endsWith(".zip"));
     await page.screenshot({
       path: `test-results/${engine}-${device.replaceAll(" ", "-")}.png`,

@@ -2243,3 +2243,22 @@ dialog::backdrop {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+.file-save-dialog {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+}
+.file-save-name {
+  overflow-wrap: anywhere;
+  font-weight: bold;
+}
+.file-save-dialog textarea {
+  width: 100%;
+  min-height: 120px;
+  font-size: 16px;
+}
+.file-save-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}

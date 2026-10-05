@@ -9,6 +9,7 @@ import { zipSync, strToU8 } from "fflate";
 import { defaults, profile } from "./geometry.js";
 import { loadImage, traceImage, svgFor, validateSVG } from "./trace.js";
 import { createDrawingPad, drawingBrushMillimeters } from "./drawing.js";
+import { download } from "./download.js";
 import lotusSvg from "./art/lotus.svg?raw";
 import peonySvg from "./art/peony.svg?raw";
 import longevitySvg from "./art/longevity.svg?raw";
@@ -586,14 +587,6 @@ function toast(s) {
   $("#toast").textContent = s;
   $("#toast").style.display = "block";
   setTimeout(() => ($("#toast").style.display = "none"), 3500);
-}
-function download(data, name, type = "application/octet-stream") {
-  const u = URL.createObjectURL(new Blob([data], { type }));
-  const a = document.createElement("a");
-  a.href = u;
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(u), 10000);
 }
 const views = {};
 // Keep the browser's last composited canvas; schedule GPU work only on changes.
@@ -1308,13 +1301,15 @@ function projectData() {
     drawing: drawingPad.serialize(),
   };
 }
-$("#save").onclick = () => {
-  download(
-    JSON.stringify(projectData(), null, 2),
+$("#save").onclick = async () => {
+  const snapshot = JSON.stringify(projectData(), null, 2);
+  const completed = await download(
+    snapshot,
     "mooncake-project.json",
     "application/json",
   );
-  dirty = false;
+  if (completed && JSON.stringify(projectData(), null, 2) === snapshot)
+    dirty = false;
 };
 $("#open").onclick = () => {
   if (
@@ -1434,7 +1429,11 @@ function stl(k) {
 for (const b of document.querySelectorAll("[data-export]"))
   b.onclick = () => {
     if (result)
-      download(stl(b.dataset.export), `mooncake-${b.dataset.export}.stl`);
+      download(
+        stl(b.dataset.export),
+        `mooncake-${b.dataset.export}.stl`,
+        "model/stl",
+      );
   };
 $("#all-stl").onclick = () => {
   if (!result) return;
@@ -1461,7 +1460,11 @@ $("#all-stl").onclick = () => {
   files["PRINT-ME.txt"] = strToU8(
     `Units: millimeters. Import at 100%. Plates flat-back-down, artwork facing up. Tooling is already mirrored. Pattern depth: ${params.relief} mm. Design-wall draft: ${params.draft} degrees, ${params.preserveArtwork ? "expanding toward the relief base to preserve the artwork face" : "tapering inward toward the artwork face"}. The cake-reference STL is a design reference, not a mold component. Mold height and cake height are independent. Changing shape requires matching parts. Fit-test before full production.`,
   );
-  download(zipSync(files, { level: 4 }), "mooncake-mold-set.zip");
+  download(
+    zipSync(files, { level: 4 }),
+    "mooncake-mold-set.zip",
+    "application/zip",
+  );
 };
 $("#help").onclick = () => $("#guide").showModal();
 $("#guide .close").onclick = () => $("#guide").close();

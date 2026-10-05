@@ -27,10 +27,13 @@ BROWSER=chromium npm run test:mobile
 
 The app requires WebGL 2, WebAssembly, workers, Canvas, and native dialogs. On iPhone, use the hosted HTTPS app in Safari; Files and Quick Look may block features used by the standalone HTML.
 
+iPhone/iPad exports show a save panel and use file sharing when the browser supports the specific file. A ZIP fallback is offered for otherwise unsupported types. Firefox Focus may not support either sharing or generated-file downloads; the panel explains this limitation and project saves include recovery text. A cancelled or failed share, or an unconfirmed iOS download attempt, does not clear unsaved changes. `tests/download-browser.mjs` covers these paths using mocked iOS capabilities, not a physical Focus installation. Verify Save Project, the STL bundle, and a single STL on a real iPhone before claiming Focus compatibility.
+
 ## Project map
 
 - `src/main.js` — interface, project files, rendering, and exports
 - `src/drawing.js` — pointer drawing, brush sizing, symmetry, and history
+- `src/download.js` — desktop downloads and iOS share/save recovery
 - `src/geometry.js` — mold, plate, pusher, relief, and fit geometry
 - `src/trace.js` — raster and SVG artwork tracing
 - `src/pastry.js` — cosmetic pastry preview

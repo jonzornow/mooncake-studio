@@ -12,7 +12,7 @@
     "build:standalone": "npm run build && python3 build_standalone.py",
     "predev": "node scripts/sync-wasm.mjs",
     "prebuild": "node scripts/sync-wasm.mjs",
-    "test:browser": "node tests/release-browser.mjs",
+    "test:browser": "node tests/release-browser.mjs && node tests/download-browser.mjs",
     "test:mobile": "node tests/mobile-browser.mjs",
     "format:check": "prettier --check src/*.js src/*.css tests/*.mjs scripts/*.mjs"
   },
