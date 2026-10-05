@@ -171,7 +171,7 @@ try {
   );
   assert.equal(
     await page.locator("#drawing-symmetry").getAttribute("aria-pressed"),
-    "true",
+    "false",
   );
   assert(await page.locator("#crop-photo").isDisabled());
   await page.locator('[data-key="artScale"]').first().focus();
