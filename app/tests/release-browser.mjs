@@ -328,13 +328,14 @@ try {
       return Math.abs(maxZ - window.__studio.params.cakeHeight) < 0.003;
     }),
   );
-  const drawingBox = await page.locator("#pattern-canvas").boundingBox();
-  assert(drawingBox);
   assert.equal(
     await page.locator("#drawing-symmetry").getAttribute("aria-pressed"),
     "false",
   );
   await page.locator("#drawing-symmetry").click();
+  await page.locator("#pattern-canvas").scrollIntoViewIfNeeded();
+  let drawingBox = await page.locator("#pattern-canvas").boundingBox();
+  assert(drawingBox);
   await page.mouse.move(
     drawingBox.x + drawingBox.width * 0.23,
     drawingBox.y + drawingBox.height * 0.27,
@@ -362,6 +363,9 @@ try {
   );
   await page.locator('[data-draw-tool="eraser"]').click();
   await page.locator('[data-brush="bold"]').click();
+  await page.locator("#pattern-canvas").scrollIntoViewIfNeeded();
+  drawingBox = await page.locator("#pattern-canvas").boundingBox();
+  assert(drawingBox);
   await page.mouse.click(
     drawingBox.x + drawingBox.width * 0.295,
     drawingBox.y + drawingBox.height * 0.285,

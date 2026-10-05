@@ -53,7 +53,7 @@ try {
     await page.locator("#edit-design").tap();
     assert(await page.locator("#editor").isVisible());
     assert(await page.locator("#pattern-canvas").isVisible());
-    const canvasBox = await page.locator("#pattern-canvas").boundingBox();
+    let canvasBox = await page.locator("#pattern-canvas").boundingBox();
     assert(
       canvasBox && canvasBox.width <= (await page.evaluate(() => innerWidth)),
     );
@@ -63,6 +63,9 @@ try {
       "false",
     );
     await page.locator("#drawing-symmetry").tap();
+    await page.locator("#pattern-canvas").scrollIntoViewIfNeeded();
+    canvasBox = await page.locator("#pattern-canvas").boundingBox();
+    assert(canvasBox);
     await page.touchscreen.tap(
       canvasBox.x + canvasBox.width * 0.27,
       canvasBox.y + canvasBox.height * 0.3,
